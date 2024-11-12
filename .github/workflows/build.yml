@@ -58,6 +58,37 @@ jobs:
           echo "build-image-sha=${{ inputs.build-image-sha }}" >> "$GITHUB_OUTPUT"
         fi
         echo "docs-only=${{ steps.filter.outputs.docs == 'true' && steps.filter.outputs.src == 'false' }}" >> "$GITHUB_OUTPUT"
+        # 添加 Windows 平台的构建任务
+  build-windows:
+    runs-on: windows-latest
+    needs: setup  # 如果需要依赖 setup 作业的输出
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the app
+        run: npm run build  # 确保 package.json 中定义了 build 脚本
+
+      - name: Package Windows installer
+        run: |
+          npx electron-builder --windows nsis
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # 确保 GitHub secrets 中配置了 GITHUB_TOKEN
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-installer
+          path: dist/*.exe  # 指定输出安装包的位置
 
   # Lint Jobs
   lint:
